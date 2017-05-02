@@ -30,6 +30,21 @@ func (l *List) SendSignal(signal syscall.Signal) {
 	}
 }
 
+// IsDone returns whether the processes are all done without failure.
+func (l *List) IsDone() bool {
+	for i := 0; i < len(l.processes); i++ {
+		if l.processes[i].Pid != PID_DONE {
+			return false
+		}
+	}
+	return true
+}
+
+// IsEmpty returns whether the process list is empty.
+func (l *List) IsEmpty() bool {
+	return len(l.processes) == 0
+}
+
 // IsRunning returns whether any process is currently running.
 func (l *List) IsRunning() bool {
 	for i := 0; i < len(l.processes); i++ {

@@ -16,9 +16,15 @@ func Parse(args []string) (Args) {
 	var commands [][]string
 
 	if len(args) > 0 {
+		// Take the first list of lists as the ports/paths.  Can be
+		// empty.
 		ports = listsOfLists[0]
-		if len(args) > 1 {
-			commands = listsOfLists[1:]
+
+		// Take all non-empty lists as lists of commands.
+		for _, list := range listsOfLists[1:] {
+			if len(list) > 0 {
+				commands = append(commands, list)
+			}
 		}
 	}
 
@@ -35,14 +41,10 @@ func split(args []string) ([][]string) {
 	start, p := 0, 0
 	for ; p < len(args); p++ {
 		if args[p] == "--" {
-			if p - start > 0 {
-				output = append(output, args[start:p])
-			}
+			output = append(output, args[start:p])
 			start = p + 1
 		}
 	}
-	if p - start > 0 {
-		output = append(output, args[start:p])
-	}
+	output = append(output, args[start:p])
 	return output
 }

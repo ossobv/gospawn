@@ -58,6 +58,12 @@ func main() {
 		processlist.Add(process)
 	}
 
+	// If there are no syslogds, and no processes either, then we're
+	// done here.
+	if len(syslogds) == 0 && processlist.IsEmpty() {
+		os.Exit(0)
+	}
+
 	// If we're stopping, then don't respawn anything.
 	stopping := false
 
@@ -79,7 +85,11 @@ func main() {
 			for ; processlist.HandleSigChild(); {
 				didSomething = true
 			}
-			if didSomething {
+			if !processlist.IsEmpty() && processlist.IsDone() {
+				// If we're running processes, but they're all done
+				// (completed with success code), then we can stop.
+				stopping = true
+			} else if didSomething {
 				// If we did something to the process list, we may have
 				// lost a child. Spawn an alarm to restart any dead
 				// children soon.
