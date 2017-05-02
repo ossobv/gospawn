@@ -35,7 +35,8 @@ func New(portOrFilename string) (Syslogd, error) {
 }
 
 func handleAll(syslogd Syslogd, conn net.PacketConn) {
-	fmt.Fprintf(os.Stdout, "SYSLOG @ %s\n", syslogd.Description())
+	fmt.Fprintf(os.Stdout, "Spawned syslogd at %s\n",
+			syslogd.Description())
 
 	buf := make([]byte, 8192)
 	for {

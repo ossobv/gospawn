@@ -3,7 +3,7 @@ package syslog2stdout
 import (
 	"fmt"
 	"net"
-	"os"
+	"syscall"
 )
 
 type syslogdUnixgram struct {
@@ -27,7 +27,7 @@ func (s *syslogdUnixgram) HandleAll() {
 
 func (s *syslogdUnixgram) Close() {
 	s.conn.Close()
-	os.Remove(s.filename)
+	syscall.Unlink(s.filename)
 }
 
 func (s *syslogdUnixgram) Description() string {
