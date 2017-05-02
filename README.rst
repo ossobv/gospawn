@@ -1,8 +1,8 @@
 GoSpawn
 =======
 
-GoSpawn is a simplified hybrid between dumb-init_, a simplified
-supervisord_ and syslog2stdout_, implemented in Go.
+GoSpawn is a cross between dumb-init_, a simplified supervisord_ and
+syslog2stdout_, implemented in Go.
 
 Because it's implemented in Go, you don't need the prerequisites for
 *supervisord* which you would have to install otherwise. One statically
@@ -47,6 +47,41 @@ they fail, they are respawned:
 If there is at least one process and all processes have completed
 successfully, gospawn ends as well. If no commands are supplied, but
 syslog ports are, it will run forever as a syslog daemon.
+
+Other examples:
+
+* The environment is preserved, and so are stdin/stdout.
+
+    .. code-block:: console
+
+        $ docker run -e VALUE=val -it IMG /gospawn -- /bin/sh -c 'echo $VALUE'
+
+        Spawned process 13: [/bin/sh -c echo $VALUE]
+        val
+        Reaped process 13: [/bin/sh -c echo $VALUE], status 0
+
+* Zombies are reaped immediately; observe how the ``sleep 5`` background
+  job is reaped in a timely fashion (see the process list) and that
+  syslog messages are captured.
+
+    .. code-block:: console
+
+        $ docker run -it IMG /gospawn /dev/log -- /usr/bin/python -c '\
+        import subprocess,time,syslog;\
+        p=subprocess.Popen("( setsid sleep 5 ) &", shell=True);p.wait();\
+        syslog.syslog("subprocess done");time.sleep(10);\
+        syslog.syslog("sleep done")'
+
+        Spawned syslogd at UNIX(/dev/log)
+        Spawned process 13: [/usr/bin/python -c import subprocess,time,syslog;\
+          p=subprocess.Popen("( setsid sleep 5 ) &", shell=True);p.wait();\
+          syslog.syslog("subprocess done");time.sleep(10);syslog.syslog("sleep done")]
+        <14>May  2 15:07:12 -c: subprocess done
+        <14>May  2 15:07:22 -c: sleep done
+        Reaped process 13: [/usr/bin/python -c import subprocess,time,syslog;\
+          p=subprocess.Popen("( setsid sleep 5 ) &", shell=True);p.wait();\
+          syslog.syslog("subprocess done");time.sleep(10);syslog.syslog("sleep done")],\
+           status 0
 
 
 ----

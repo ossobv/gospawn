@@ -40,7 +40,7 @@ func handleAll(syslogd Syslogd, conn net.PacketConn) {
 
 	buf := make([]byte, 8192)
 	for {
-		_, addr, err := conn.ReadFrom(buf)
+		n, addr, err := conn.ReadFrom(buf)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "ERR: %s: %s\n", syslogd.Description(),
 					err.Error())
@@ -48,6 +48,7 @@ func handleAll(syslogd Syslogd, conn net.PacketConn) {
 		}
 
 		// FIXME: the buf has to be parsed syslog-style
-		fmt.Fprintf(os.Stdout, "%s%s\n", syslogd.Addr2Prefix(&addr), buf)
+		str := string(buf[:n])
+		fmt.Fprintf(os.Stdout, "%s%s\n", syslogd.Addr2Prefix(&addr), str)
 	}
 }
