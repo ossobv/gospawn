@@ -1,27 +1,38 @@
 package syslog2stdout
 
 import (
+	"fmt"
 	"net"
 )
 
-type ListenerUdp struct {
+type syslogdUDP struct {
+	name string
 	conn net.PacketConn
 }
 
-func listenUdp(port int) (Listener, error) {
+func newUDP(port int) (Syslogd, error) {
 	var listenAddr = net.UDPAddr{IP: nil, Port: port, Zone: ""}
 	conn, err := net.ListenUDP("udp", &listenAddr)
 	if err != nil {
 		return nil, err
 	}
-	l := &ListenerUdp{conn: conn}
-	return l, nil
+
+	s := &syslogdUDP{name: fmt.Sprintf("UDP(%d)", port), conn: conn}
+	return s, nil
 }
 
-func (l *ListenerUdp) HandleAll() {
-	handleAll(l.conn)
+func (s *syslogdUDP) HandleAll() {
+	handleAll(s, s.conn)
 }
 
-func (l *ListenerUdp) Close() {
-	l.conn.Close()
+func (s *syslogdUDP) Close() {
+	s.conn.Close()
+}
+
+func (s *syslogdUDP) Description() string {
+	return s.name
+}
+
+func (s *syslogdUDP) Addr2Prefix(addr *net.Addr) string {
+	return fmt.Sprintf("%s: ", (*addr).String())
 }

@@ -1,30 +1,39 @@
 package syslog2stdout
 
 import (
+	"fmt"
 	"net"
 	"os"
 )
 
-type ListenerUnixgram struct {
+type syslogdUnixgram struct {
 	filename string
 	conn net.PacketConn
 }
 
-func listenUnixgram(filename string) (Listener, error) {
+func newUnixgram(filename string) (Syslogd, error) {
 	listenAddr := net.UnixAddr{Name: filename, Net: "unixgram"}
 	conn, err := net.ListenUnixgram("unixgram", &listenAddr)
 	if err != nil {
 		return nil, err
 	}
-	l := &ListenerUnixgram{filename: filename, conn: conn}
-	return l, nil
+	s := &syslogdUnixgram{filename: filename, conn: conn}
+	return s, nil
 }
 
-func (l *ListenerUnixgram) HandleAll() {
-	handleAll(l.conn)
+func (s *syslogdUnixgram) HandleAll() {
+	handleAll(s, s.conn)
 }
 
-func (l *ListenerUnixgram) Close() {
-	l.conn.Close()
-	os.Remove(l.filename)
+func (s *syslogdUnixgram) Close() {
+	s.conn.Close()
+	os.Remove(s.filename)
+}
+
+func (s *syslogdUnixgram) Description() string {
+	return fmt.Sprintf("UNIX(%s)", s.filename)
+}
+
+func (s *syslogdUnixgram) Addr2Prefix(addr *net.Addr) string {
+	return ""
 }

@@ -3,6 +3,11 @@
 *.a
 *.so
 
+/gospawn
+
+# Cache/temp files
+.*.swp
+
 # Folders
 _obj
 _test

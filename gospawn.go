@@ -4,9 +4,9 @@ package main
 import (
 	"fmt"
 	"os"
-	"os/signal"
-	"syscall"
 
+	"github.com/ossobv/gospawn/args"
+	"github.com/ossobv/gospawn/signals"
 	"github.com/ossobv/gospawn/syslog2stdout"
 )
 
@@ -16,23 +16,17 @@ import (
 // (pass a function to handleAll to convert the Addr struct)
 
 
-var signalChan chan os.Signal
-
 func main() {
-	var syslogds []syslog2stdout.Listener
+	var syslogds []syslog2stdout.Syslogd
 
-	initSignals()
+	args := args.Parse(os.Args[1:])
 
-	// For each argv, open up a new UDP/UNIXDGRAM listener to
-	// "handle". Once we encounter "--" we break.
-	argi := 1
-	for ; argi < len(os.Args); argi++ {
-		if os.Args[argi] == "--" {
-			argi++
-			break
-		}
+	sigHandler := signals.New()
 
-		listener, err := syslog2stdout.Listen(os.Args[argi])
+	// Open up a new UDP/UNIXDGRAM listener for each syslogport.
+	for _, port := range args.SyslogPorts {
+		fmt.Printf("LOG port/path %s\n", port)
+		listener, err := syslog2stdout.New(port)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err.Error())
 		} else {
@@ -41,47 +35,17 @@ func main() {
 		}
 	}
 
-	// Leftover args? Start those.
-	argp := argi
-	for ; argp < len(os.Args); argp++ {
-		if os.Args[argp] == "--" || argp == (len(os.Args) - 1) {
-			fmt.Printf("should start %s ..\n", os.Args[argi])
-			argi = argp + 1
-		}
+	// Start all syslogds in the background.
+	for _, syslogd := range syslogds {
+		go syslogd.HandleAll()
 	}
 
-	// Start all listeners in the background.
-	for i := 0; i < len(syslogds); i++ {
-		go syslogds[i].HandleAll()
+	// Start all commands in the background.
+	for _, command := range args.Commands {
+		fmt.Printf("CMD %r\n", command)
 	}
 
 	// Start all other processes...?
 	// Write message that we're up and running?
-	waitSignals()
-}
-
-func initSignals() {
-	signalChan = make(chan os.Signal, 1)
-	signal.Notify(signalChan, syscall.SIGHUP)
-	signal.Notify(signalChan, syscall.SIGINT)
-	signal.Notify(signalChan, syscall.SIGQUIT)		// status report?
-	//signal.Notify(signalChan, syscall.SIGUSR1)	// reload?
-	//signal.Notify(signalChan, syscall.SIGUSR2)	// reload?
-	signal.Notify(signalChan, syscall.SIGTERM)
-	//signal.Notify(signalChan, syscall.SIGCHLD)	// useful?
-	//wg := &sync.WaitGroup{}
-}
-
-// waitSignals waits forever, until a signal of INT or TERM arrives.
-// This is better than using a "select{}" as blockForever, because if we
-// never return to main, we won't call our deferred Close()s.
-func waitSignals() {
-	for sig := range signalChan {
-		switch sig.String() {
-		case "interrupt": fallthrough
-		case "term": fallthrough
-		case "whatever": return
-		default: fmt.Fprintf(os.Stderr, "signal: %s (ignoring)\n", sig)
-		}
-	}
+	sigHandler.HandleAll()
 }
