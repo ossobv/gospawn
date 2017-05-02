@@ -39,7 +39,15 @@ func (p *Process) respawn() error {
 		return &alreadyRunningError{}
 	}
 
-	pid, err := syscall.ForkExec(p.Command[0], p.Command, nil)
+	workingDir, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	env := os.Environ()
+	files := []uintptr{0, 1, 2}
+	attr := syscall.ProcAttr{Dir: workingDir, Env: env, Files: files}
+
+	pid, err := syscall.ForkExec(p.Command[0], p.Command, &attr)
 	if err == nil {
 		fmt.Fprintf(os.Stdout, "Spawned process %d: %s\n", pid, p.Command)
 		p.Pid = pid
