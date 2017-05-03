@@ -80,17 +80,18 @@ func (l *List) RespawnFailed() uint {
 // HandleSigChild calls waitpid and marks processes from the process
 // list as done.  Return true if there was something to handle.
 func (l *List) HandleSigChild() bool {
-	var w syscall.WaitStatus
-	pid, err := syscall.Wait4(-1, &w, syscall.WNOHANG, nil)
+	var waitStatus syscall.WaitStatus
+	pid, err := syscall.Wait4(-1, &waitStatus, syscall.WNOHANG, nil)
 
-	// Nothing to do?
-	if pid == 0 {
+	switch {
+	case pid == 0:
+		// Nothing to do?
 		return false
-	}
 
-	// In the rare case that we missed a signal, we can use the "there
-	// are no processes to wait on" ECHILD to mark all children down.
-	if err == syscall.ECHILD {
+	case err == syscall.ECHILD:
+		// In the rare case that we missed a signal, we can use the
+		// "there are no processes to wait on" ECHILD to mark all
+		// children down.
 		for i := 0; i < len(l.processes); i++ {
 			if l.processes[i].Pid >= PID_VALID {
 				fmt.Fprintf(os.Stderr,
@@ -100,38 +101,24 @@ func (l *List) HandleSigChild() bool {
 			}
 		}
 		return false
-	}
 
-	// Error, pretend something happened so we can double-check in case
-	// there is an EAGAIN/EINTR or something.
-	if pid < 0 {
+	case pid < 0:
+		// Error, pretend something happened so we can double-check in
+		// case there is an EAGAIN/EINTR or something.
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "ERR: wait4: %s\n", err.Error())
 		}
 		return true
-	}
 
-	// Looping over _, proc := range processes is no good.
-	// It'll return a copy of Process, and we'd edit a temp
-	// copy only.
-	for i := 0; i < len(l.processes); i++ {
-		if l.processes[i].Pid == pid {
-			if w.Exited() {
-				fmt.Fprintf(os.Stdout, "Reaped process %d: %s, status %d\n",
-						pid, l.processes[i].Command, w.ExitStatus())
-				if w.ExitStatus() == 0 {
-					l.processes[i].Pid = PID_DONE
-				} else {
-					l.processes[i].Pid = PID_FAILED
-				}
-			} else if w.Signaled() {
-				fmt.Fprintf(os.Stdout, "Reaped process %d: %s, signal %s\n",
-						pid, l.processes[i].Command, w.Signal())
-				l.processes[i].Pid = PID_FAILED
-			} else {
-				fmt.Fprintf(os.Stderr, "DBG: Not reaping PID %d\n", pid)
+	default:
+		// Looping over _, proc := range processes is no good.
+		// It'll return a copy of Process, and we'd edit a temp
+		// copy only.
+		for i := 0; i < len(l.processes); i++ {
+			if l.processes[i].Pid == pid {
+				l.processes[i].setStatus(&waitStatus)
+				return true
 			}
-			return true
 		}
 	}
 
