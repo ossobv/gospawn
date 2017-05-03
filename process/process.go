@@ -3,7 +3,7 @@ package process
 import (
 	"fmt"
 	"os"
-    "syscall"
+	"syscall"
 )
 
 const (

@@ -23,52 +23,82 @@ const (
 	SLEEP_BEFORE_RESPAWN = 10
 )
 
-func main() {
-	var syslogds []syslog2stdout.Syslogd
+type mainState struct {
+	// A list of syslogds.
+	syslogds []syslog2stdout.Syslogd
+	// A list of processes.
+	processlist process.List
+	// Fetch signals from here.
+	sigHandler signal.Handler
+	// No respawning when we're stopping; defaults to false.
+	stopping bool
+}
 
-	args := args.Parse(os.Args[1:])
+func goSpawn() mainState {
+	return mainState{stopping: false}
+}
 
-	sigHandler := signal.New()
+func (m *mainState) initSignals() {
+	m.sigHandler = signal.New()
+}
 
+func (m *mainState) startSyslogds(portsOrPaths []string) {
 	// Open up a new UDP/UNIXDGRAM listener for each syslogport.
-	for _, port := range args.SyslogPorts {
+	for _, port := range portsOrPaths {
 		listener, err := syslog2stdout.New(port)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err.Error())
 		} else {
-			defer listener.Close()
-			syslogds = append(syslogds, listener)
+			m.syslogds = append(m.syslogds, listener)
 		}
 	}
 
 	// Start all syslogds in the background.
-	for _, syslogd := range syslogds {
-		go syslogd.HandleAll()
+	for i := 0; i < len(m.syslogds); i++ {
+		go m.syslogds[i].HandleAll()
 	}
+}
 
+func (m *mainState) startProcesses(commands [][]string) {
 	// Start all commands in the background.
-	processlist := process.NewList()
-	for _, command := range args.Commands {
+	m.processlist = process.NewList()
+	for _, command := range commands {
 		process, err := process.New(command)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "ERR: starting %s: %s\n",
 					command, err.Error())
 			continue
 		}
-		processlist.Add(process)
+		m.processlist.Add(process)
 	}
+}
 
-	// If there are no syslogds, and no processes either, then we're
-	// done here.
-	if len(syslogds) == 0 && processlist.IsEmpty() {
-		os.Exit(0)
+func (m *mainState) stopSyslogds() {
+	// Close all syslogds (with cleanup)
+	for i := 0; i < len(m.syslogds); i++ {
+		m.syslogds[i].Close()
 	}
+}
 
-	// If we're stopping, then don't respawn anything.
-	stopping := false
+func (m *mainState) stopProcesses() {
+	// Kill -9 all processes that hadn't been killed yet.
+	m.processlist.SendSignal(syscall.SIGKILL)
+}
 
+func (m *mainState) shutdown() {
+	m.stopProcesses()
+	m.stopSyslogds()
+}
+
+func (m *mainState) hasWork() bool {
+	return (
+		len(m.syslogds) != 0 ||
+		!m.processlist.IsEmpty())
+}
+
+func (m *mainState) doWork() {
 	// Read all signals until it's time to end.
-	for sig := range sigHandler.Chan {
+	for sig := range m.sigHandler.Chan {
 		sigDesc := sig.String()
 		//fmt.Fprintf(os.Stderr, "DBG: signal: %s\n", sigDesc)
 
@@ -76,19 +106,19 @@ func main() {
 		case "alarm clock":
 			// We send ourself an alarm when there has been a change in
 			// the processlist.  Respawn processes that have died.
-			if !stopping {
-				processlist.RespawnFailed()
+			if !m.stopping {
+				m.processlist.RespawnFailed()
 			}
 
 		case "child exited":
 			didSomething := false
-			for ; processlist.HandleSigChild(); {
+			for ; m.processlist.HandleSigChild(); {
 				didSomething = true
 			}
-			if !processlist.IsEmpty() && processlist.IsDone() {
+			if !m.processlist.IsEmpty() && m.processlist.IsDone() {
 				// If we're running processes, but they're all done
 				// (completed with success code), then we can stop.
-				stopping = true
+				m.stopping = true
 			} else if didSomething {
 				// If we did something to the process list, we may have
 				// lost a child. Spawn an alarm to restart any dead
@@ -100,22 +130,23 @@ func main() {
 			if QUIT_IMMEDIATELY {
 				fmt.Fprintf(os.Stderr,
 						"ERR: Got SIGQUIT, passing kill -9 to all\n")
-			    // Quick exit, no cleanup!
-			    processlist.SendSignal(syscall.SIGKILL)
-			    // No deferred Close() handlers will get called.
-			    os.Exit(128 + 3 /* SIGQUIT */)
+				// Quick exit, no cleanup!
+				m.processlist.SendSignal(syscall.SIGKILL)
+				// Try a bit of cleanup.
+				m.shutdown()
+				os.Exit(128 + 3 /* SIGQUIT */)
 			}
 			fallthrough
 
 		default:
 			if sigDesc == "interrupt" || sigDesc == "terminated" {
-				stopping = true
+				m.stopping = true
 			}
 
 			if syscallSig, ok := sig.(syscall.Signal); ok {
 				//fmt.Fprintf(os.Stderr, "DBG: forwarding signal %s\n",
 				//		syscallSig)
-				processlist.SendSignal(syscallSig)
+				m.processlist.SendSignal(syscallSig)
 			}
 
 			if sigDesc == "stopped" {
@@ -125,8 +156,21 @@ func main() {
 		}
 
 		// If we're stopping and there is no running process, then we're done.
-		if stopping && !processlist.IsRunning() {
+		if m.stopping && !m.processlist.IsRunning() {
 			break
 		}
 	}
+}
+
+func main() {
+	args := args.Parse(os.Args[1:])
+
+	gospawn := goSpawn()
+	gospawn.initSignals()
+	gospawn.startSyslogds(args.SyslogPorts)
+	gospawn.startProcesses(args.Commands)
+	if gospawn.hasWork() {
+		gospawn.doWork()
+	}
+	gospawn.shutdown()
 }

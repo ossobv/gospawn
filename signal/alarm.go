@@ -6,6 +6,8 @@ import (
 	"syscall"
 )
 
+// Alarm sets up a timer so a SIGALRM signal is fired after 'seconds'
+// seconds.
 func Alarm(seconds int) {
 	if seconds <= 0 || seconds > 86400 {
 		fmt.Fprintf(os.Stderr,

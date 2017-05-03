@@ -13,7 +13,6 @@ compiled binary is enough.
 .. _syslog2stdout: https://github.com/ossobv/syslog2stdout
 
 
------
 Usage
 -----
 
@@ -82,11 +81,11 @@ Other examples:
            status 0
 
 
-----
 TODO
 ----
 
 * Check what we do with stale sockets in syslog2stdout and do the same here.
+* Bugs: the Close() during shutdown may send syslogd Read errors to the console.
 * Also fix the socket ownership.
 * Parse syslogd stuff instead of printing it verbatim:
   See also: https://github.com/ossobv/syslog2stdout/blob/master/syslog2stdout.c#L61

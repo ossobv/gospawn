@@ -74,7 +74,7 @@ func (l *List) RespawnFailed() uint {
 // HandleSigChild calls waitpid and marks processes from the process
 // list as done.  Return true if there was something to handle.
 func (l *List) HandleSigChild() bool {
-    var w syscall.WaitStatus
+	var w syscall.WaitStatus
 	pid, err := syscall.Wait4(-1, &w, syscall.WNOHANG, nil)
 
 	// Nothing to do?

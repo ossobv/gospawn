@@ -7,4 +7,6 @@ GOFLAGS = -tags netgo
 all: gospawn
 
 gospawn: Makefile $(shell find . -name '*.go' -type f)
+	-find . -type d | xargs -n 1 golint
+	@echo
 	go build $(GOFLAGS) gospawn.go
