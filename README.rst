@@ -21,12 +21,10 @@ Syntax::
 
     gospawn [SYSLOGD_PORTS_AND_PATHS...] -- [COMMANDS...]
 
-To spawn a syslog daemon on UDP port 514 and in /dev/log, and to spawn
-*cron* and *uwsgi*, you use this:
+To spawn a syslog daemon on UDP port 514 *and* in ``/dev/log``, and to
+spawn *cron* and *uwsgi*, you use this::
 
-.. code-block:: console
-
-    $ gospawn 514 /dev/log -- /usr/sbin/cron -f -L 15 -- /usr/bin/uwsgi /uwsgi.ini
+    gospawn 514 /dev/log -- /usr/sbin/cron -f -L 15 -- /usr/bin/uwsgi /uwsgi.ini
 
 When processes succeed (return with code 0), they are not respawned. If
 they fail, they are respawned:
