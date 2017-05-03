@@ -16,9 +16,15 @@ func NewList() List {
 	return List{}
 }
 
-// Add adds a process to the list of processes.
-func (l *List) Add(proc Process) {
+// StartProcess starts a process and adds it to the list of processes,
+// unless it failed.
+func (l *List) StartProcess(command []string) error {
+	proc, err := New(command)
+	if err != nil {
+		return err
+	}
 	l.processes = append(l.processes, proc)
+	return nil
 }
 
 // SendSignal sends a signal to all running processes in the list.

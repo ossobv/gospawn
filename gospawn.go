@@ -63,13 +63,12 @@ func (m *mainState) startProcesses(commands [][]string) {
 	// Start all commands in the background.
 	m.processlist = process.NewList()
 	for _, command := range commands {
-		process, err := process.New(command)
+		err := m.processlist.StartProcess(command)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "ERR: starting %s: %s\n",
 					command, err.Error())
 			continue
 		}
-		m.processlist.Add(process)
 	}
 }
 
