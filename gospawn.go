@@ -95,66 +95,85 @@ func (m *mainState) hasWork() bool {
 		!m.processlist.IsEmpty())
 }
 
+func (m *mainState) handleAlarm() {
+	// We send ourself an alarm when there has been a change in
+	// the processlist.  Respawn processes that have died.
+	if !m.stopping {
+		m.processlist.RespawnFailed()
+	}
+}
+
+func (m *mainState) handleSigChild() {
+	didSomething := false
+	for ; m.processlist.HandleSigChild(); {
+		didSomething = true
+	}
+	if !m.processlist.IsEmpty() && m.processlist.IsDone() {
+		// If we're running processes, but they're all done
+		// (completed with success code), then we can stop.
+		m.stopping = true
+	} else if didSomething {
+		// If we did something to the process list, we may have
+		// lost a child. Spawn an alarm to restart any dead
+		// children soon.
+		signal.Alarm(SLEEP_BEFORE_RESPAWN)
+	}
+}
+
+func (m *mainState) handleQuit() {
+	if QUIT_IMMEDIATELY {
+		fmt.Fprintf(os.Stderr,
+				"ERR: Got SIGQUIT, passing kill -9 to all\n")
+		// Quick exit, no cleanup!
+		m.processlist.SendSignal(syscall.SIGKILL)
+		// Try a bit of cleanup.
+		m.shutdown()
+		os.Exit(128 + 3 /* SIGQUIT */)
+	}
+}
+
+func (m *mainState) handleSigDefault(sig os.Signal) {
+	sigDesc := sig.String()
+	if sigDesc == "interrupt" || sigDesc == "terminated" {
+		m.stopping = true
+	}
+
+	if syscallSig, ok := sig.(syscall.Signal); ok {
+		//fmt.Fprintf(os.Stderr, "DBG: forwarding signal %s\n",
+		//		syscallSig)
+		m.processlist.SendSignal(syscallSig)
+	}
+
+	if sigDesc == "stopped" {
+		// Background self because of SIGTSTP.
+		syscall.Kill(syscall.Getpid(), syscall.SIGSTOP)
+	}
+}
+
 func (m *mainState) doWork() {
 	// Read all signals until it's time to end.
 	for sig := range m.sigHandler.Chan {
-		sigDesc := sig.String()
-		//fmt.Fprintf(os.Stderr, "DBG: signal: %s\n", sigDesc)
+		//fmt.Fprintf(os.Stderr, "DBG: signal: %s\n", sig.String()
 
-		switch sigDesc {
+		switch sig.String() {
 		case "alarm clock":
-			// We send ourself an alarm when there has been a change in
-			// the processlist.  Respawn processes that have died.
-			if !m.stopping {
-				m.processlist.RespawnFailed()
-			}
+			m.handleAlarm()
 
 		case "child exited":
-			didSomething := false
-			for ; m.processlist.HandleSigChild(); {
-				didSomething = true
-			}
-			if !m.processlist.IsEmpty() && m.processlist.IsDone() {
-				// If we're running processes, but they're all done
-				// (completed with success code), then we can stop.
-				m.stopping = true
-			} else if didSomething {
-				// If we did something to the process list, we may have
-				// lost a child. Spawn an alarm to restart any dead
-				// children soon.
-				signal.Alarm(SLEEP_BEFORE_RESPAWN)
-			}
+			m.handleSigChild()
 
 		case "quit":
-			if QUIT_IMMEDIATELY {
-				fmt.Fprintf(os.Stderr,
-						"ERR: Got SIGQUIT, passing kill -9 to all\n")
-				// Quick exit, no cleanup!
-				m.processlist.SendSignal(syscall.SIGKILL)
-				// Try a bit of cleanup.
-				m.shutdown()
-				os.Exit(128 + 3 /* SIGQUIT */)
-			}
+			// handleQuit() may Exit, or not, in which case we handle it
+			// like every other signal.
+			m.handleQuit()
 			fallthrough
 
 		default:
-			if sigDesc == "interrupt" || sigDesc == "terminated" {
-				m.stopping = true
-			}
-
-			if syscallSig, ok := sig.(syscall.Signal); ok {
-				//fmt.Fprintf(os.Stderr, "DBG: forwarding signal %s\n",
-				//		syscallSig)
-				m.processlist.SendSignal(syscallSig)
-			}
-
-			if sigDesc == "stopped" {
-				// Background self because of SIGTSTP.
-				syscall.Kill(syscall.Getpid(), syscall.SIGSTOP)
-			}
+			m.handleSigDefault(sig)
 		}
 
-		// If we're stopping and there is no running process, then we're done.
+		// If we're "stopping" and there are no more running processes,
+		// we're done.
 		if m.stopping && !m.processlist.IsRunning() {
 			break
 		}
