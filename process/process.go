@@ -48,7 +48,7 @@ func (p *Process) respawn() error {
 	files := []uintptr{0, 1, 2} // STDIN, STDOUT, STDERR
 	attr := syscall.ProcAttr{Dir: workingDir, Env: env, Files: files}
 
-	pid, err := syscall.ForkExec(searchPath(p.Command[0]), p.Command, &attr)
+	pid, err := syscall.ForkExec(searchPathEnv(p.Command[0]), p.Command, &attr)
 	if err == nil {
 		p.Pid = pid
 		fmt.Fprintf(os.Stdout, "Spawned %s\n", statusOfProcess(p, nil))
@@ -79,7 +79,7 @@ func (e *alreadyRunningError) Error() string {
 	return "already running"
 }
 
-func searchPath(command string) string {
+func searchPathEnv(command string) string {
 	// If there is a slash in the command, then don't search the path.
 	if strings.IndexByte(command, '/') != -1 {
 		return command
@@ -94,6 +94,10 @@ func searchPath(command string) string {
 			"/usr/sbin", "/usr/bin", "/sbin", "/bin"}
 	}
 
+	return searchPaths(command, paths)
+}
+
+func searchPaths(command string, paths []string) string {
 	for _, path := range paths {
 		if path != "" {
 			fullPath := path + "/" + command
