@@ -8,7 +8,7 @@ import (
 
 type syslogdUnixgram struct {
 	filename string
-	conn net.PacketConn
+	conn     net.PacketConn
 }
 
 func newUnixgram(filename string) (Syslogd, error) {

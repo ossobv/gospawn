@@ -95,8 +95,8 @@ func (l *List) HandleSigChild() bool {
 		for i := 0; i < len(l.processes); i++ {
 			if l.processes[i].Pid >= PID_VALID {
 				fmt.Fprintf(os.Stderr,
-						"ERR: acting on ECHILD, marking PID %d as down\n",
-						l.processes[i].Pid)
+					"ERR: acting on ECHILD, marking PID %d as down\n",
+					l.processes[i].Pid)
 				l.processes[i].Pid = PID_FAILED
 			}
 		}

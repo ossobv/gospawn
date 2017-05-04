@@ -66,7 +66,7 @@ func (m *mainState) startProcesses(commands [][]string) {
 		err := m.processlist.StartProcess(command)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "ERR: starting %s: %s\n",
-					command, err.Error())
+				command, err.Error())
 			continue
 		}
 	}
@@ -90,8 +90,7 @@ func (m *mainState) shutdown() {
 }
 
 func (m *mainState) hasWork() bool {
-	return (
-		len(m.syslogds) != 0 ||
+	return (len(m.syslogds) != 0 ||
 		!m.processlist.IsEmpty())
 }
 
@@ -105,7 +104,7 @@ func (m *mainState) handleAlarm() {
 
 func (m *mainState) handleSigChild() {
 	didSomething := false
-	for ; m.processlist.HandleSigChild(); {
+	for m.processlist.HandleSigChild() {
 		didSomething = true
 	}
 	if !m.processlist.IsEmpty() && m.processlist.IsDone() {
@@ -123,7 +122,7 @@ func (m *mainState) handleSigChild() {
 func (m *mainState) handleQuit() {
 	if QUIT_IMMEDIATELY {
 		fmt.Fprintf(os.Stderr,
-				"ERR: Got SIGQUIT, passing kill -9 to all\n")
+			"ERR: Got SIGQUIT, passing kill -9 to all\n")
 		// Quick exit, no cleanup!
 		m.processlist.SendSignal(syscall.SIGKILL)
 		// Try a bit of cleanup.

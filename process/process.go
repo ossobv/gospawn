@@ -21,7 +21,7 @@ const (
 // Process keeps track of a single subprocess.
 type Process struct {
 	Command []string
-	Pid int
+	Pid     int
 }
 
 // New creates a new process.
@@ -59,7 +59,7 @@ func (p *Process) respawn() error {
 func (p *Process) setStatus(waitStatus *syscall.WaitStatus) {
 	if waitStatus.Exited() {
 		fmt.Fprintf(os.Stdout, "Reaped process %d: %s, status %d\n",
-				p.Pid, p.Command, waitStatus.ExitStatus())
+			p.Pid, p.Command, waitStatus.ExitStatus())
 		if waitStatus.ExitStatus() == 0 {
 			p.Pid = PID_DONE
 		} else {
@@ -67,14 +67,14 @@ func (p *Process) setStatus(waitStatus *syscall.WaitStatus) {
 		}
 	} else if waitStatus.Signaled() {
 		fmt.Fprintf(os.Stdout, "Reaped process %d: %s, signal %s\n",
-				p.Pid, p.Command, waitStatus.Signal())
+			p.Pid, p.Command, waitStatus.Signal())
 		p.Pid = PID_FAILED
 	} else {
 		fmt.Fprintf(os.Stderr, "DBG: Not reaping PID %d\n", p.Pid)
 	}
 }
 
-type alreadyRunningError struct {}
+type alreadyRunningError struct{}
 
 func (e *alreadyRunningError) Error() string {
 	return "already running"

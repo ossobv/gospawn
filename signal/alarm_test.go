@@ -17,7 +17,7 @@ func ExampleAlarm() {
 	fmt.Println("... do work here ...")
 
 	sig := <-sigs
-	fmt.Printf("Got '%s' after %ds\n", sig.String(), time.Now().Unix() - t0)
+	fmt.Printf("Got '%s' after %ds\n", sig.String(), time.Now().Unix()-t0)
 	// Output: ... do work here ...
 	// Got 'alarm clock' after 1s
 }

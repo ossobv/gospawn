@@ -9,7 +9,7 @@ type Args struct {
 }
 
 // Parse parses the (command line) args into an Args structure.
-func Parse(args []string) (Args) {
+func Parse(args []string) Args {
 	listsOfLists := split(args)
 
 	var ports []string
@@ -32,10 +32,10 @@ func Parse(args []string) (Args) {
 }
 
 // split parses the (command line) args into a list of lists.
-// 
+//
 // For example:
 //   split(["a", "--", "b", "c"]) == [["a"], ["b", "c"]]
-func split(args []string) ([][]string) {
+func split(args []string) [][]string {
 	var output [][]string
 
 	start, p := 0, 0

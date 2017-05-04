@@ -36,14 +36,14 @@ func New(portOrFilename string) (Syslogd, error) {
 
 func handleAll(syslogd Syslogd, conn net.PacketConn) {
 	fmt.Fprintf(os.Stdout, "Spawned syslogd at %s\n",
-			syslogd.Description())
+		syslogd.Description())
 
 	buf := make([]byte, 8192)
 	for {
 		n, addr, err := conn.ReadFrom(buf)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "ERR: %s: %s\n", syslogd.Description(),
-					err.Error())
+				err.Error())
 			continue
 		}
 

@@ -6,8 +6,9 @@ GOFLAGS = -tags netgo
 
 all: test gospawn
 
-test: $(shell find ! -path './.*' -name '*_test.go' -type f)
+test: $(shell find ! -path './.*' -type f -name '*_test.go')
 	-find ! -path '*/.*' -type d | xargs -n 1 go test -v
+	-find ! -path '*/.*' -type f -name '*.go' | xargs -n 1 gofmt -s -d
 
 gospawn: Makefile $(shell find ! -path './.*' -name '*.go' -type f)
 	-find ! -path './.*' -type d | xargs -n 1 golint
