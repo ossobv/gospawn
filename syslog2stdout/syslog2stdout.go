@@ -19,7 +19,7 @@ type Syslogd interface {
 
 	// Description returns a description of the socket.
 	Description() string
-	// Addr2Str converts Syslogd implementation addresses to a prefix,
+	// Addr2Prefix converts Syslogd implementation addresses to a prefix,
 	// if necessary.
 	Addr2Prefix(addr *net.Addr) string
 }

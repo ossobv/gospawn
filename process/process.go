@@ -3,6 +3,7 @@ package process
 import (
 	"fmt"
 	"os"
+	"strings"
 	"syscall"
 )
 
@@ -44,10 +45,10 @@ func (p *Process) respawn() error {
 		return err
 	}
 	env := os.Environ()
-	files := []uintptr{0, 1, 2}
+	files := []uintptr{0, 1, 2} // STDIN, STDOUT, STDERR
 	attr := syscall.ProcAttr{Dir: workingDir, Env: env, Files: files}
 
-	pid, err := syscall.ForkExec(p.Command[0], p.Command, &attr)
+	pid, err := syscall.ForkExec(searchPath(p.Command[0]), p.Command, &attr)
 	if err == nil {
 		p.Pid = pid
 		fmt.Fprintf(os.Stdout, "Spawned %s\n", statusOfProcess(p, nil))
@@ -76,4 +77,35 @@ type alreadyRunningError struct{}
 
 func (e *alreadyRunningError) Error() string {
 	return "already running"
+}
+
+func searchPath(command string) string {
+	// If there is a slash in the command, then don't search the path.
+	if strings.IndexByte(command, '/') != -1 {
+		return command
+	}
+
+	var paths []string
+	if pathEnv, hasPath := os.LookupEnv("PATH"); hasPath {
+		paths = strings.Split(pathEnv, ":")
+	} else {
+		paths = []string{
+			"/usr/local/sbin", "/usr/local/bin",
+			"/usr/sbin", "/usr/bin", "/sbin", "/bin"}
+	}
+
+	for _, path := range paths {
+		if path != "" {
+			fullPath := path + "/" + command
+			info, err := os.Stat(fullPath)
+			if err == nil {
+				mode := info.Mode()
+				if mode.IsRegular() && mode.Perm()&0111 != 0 {
+					return fullPath
+				}
+			}
+		}
+	}
+
+	return command
 }

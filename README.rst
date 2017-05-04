@@ -36,16 +36,16 @@ they fail, they are respawned:
 
 .. code-block:: console
 
-    $ gospawn -- /bin/sleep 1 -- /bin/false
-    Spawned process 29087: [/bin/sleep 1]
-    Spawned process 29089: [/bin/false]
-    Reaped process 29089: [/bin/false], status 1
-    Reaped process 29087: [/bin/sleep 1], status 0
+    $ gospawn -- sleep 1 -- false
+    Spawned process 29087 [sleep 1], running
+    Spawned process 29089 [false], running
+    Reaped process 29089 [false], status 1
+    Reaped process 29087 [sleep 1], status 0
 
     (after 10 seconds)
 
-    Spawned process 29095: [/bin/false]
-    Reaped process 29095: [/bin/false], status 1
+    Spawned process 29095 [false], running
+    Reaped process 29095 [false], status 1
 
 If there is at least one process and all processes have completed
 successfully, gospawn ends as well. If no commands are supplied, but
@@ -57,11 +57,11 @@ Other examples:
 
     .. code-block:: console
 
-        $ docker run -e VALUE=val -it IMG /gospawn -- /bin/sh -c 'echo $VALUE'
+        $ docker run -e VALUE=val -it IMG /gospawn -- sh -c 'echo $VALUE'
 
-        Spawned process 13: [/bin/sh -c echo $VALUE]
+        Spawned process 13: [sh -c echo $VALUE]
         val
-        Reaped process 13: [/bin/sh -c echo $VALUE], status 0
+        Reaped process 13: [sh -c echo $VALUE], status 0
 
 * Zombies are reaped immediately; observe how the ``sleep 5`` background
   job is reaped in a timely fashion (see the process list) and that
@@ -69,17 +69,17 @@ Other examples:
 
     .. code-block:: console
 
-        $ docker run -it IMG /gospawn /dev/log -- /usr/bin/python -c '\
+        $ docker run -it IMG /gospawn /dev/log -- python -c '\
                 import subprocess,time,syslog;\
                 p=subprocess.Popen("setsid sleep 5 &", shell=True);p.wait();\
                 syslog.syslog("subprocess done");time.sleep(10);\
                 syslog.syslog("sleep done")'
         Spawned syslogd at UNIX(/dev/log)
-        Spawned process 12 [/usr/bin/python -c ...], running
+        Spawned process 12 [python -c ...], running
         <14>May  4 09:11:22 -c: subprocess done
         Reaped process 14, status 0
         <14>May  4 09:11:32 -c: sleep done
-        Reaped process 12 [/usr/bin/python -c ...], status 0
+        Reaped process 12 [python -c ...], status 0
 
 
 TODO
