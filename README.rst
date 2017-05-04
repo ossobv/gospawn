@@ -1,6 +1,12 @@
 GoSpawn
 =======
 
+.. image:: https://bettercodehub.com/edge/badge/ossobv/gospawn?branch=master
+    :target: https://bettercodehub.com/
+
+.. image:: https://goreportcard.com/badge/github.com/ossobv/gospawn
+    :target: https://goreportcard.com/report/github.com/ossobv/gospawn
+
 GoSpawn is a cross between dumb-init_, a simplified supervisord_ and
 syslog2stdout_, implemented in Go.
 
