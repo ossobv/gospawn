@@ -74,6 +74,7 @@ Other examples:
                 p=subprocess.Popen("setsid sleep 5 &", shell=True);p.wait();\
                 syslog.syslog("subprocess done");time.sleep(10);\
                 syslog.syslog("sleep done")'
+
         Spawned syslogd at UNIX(/dev/log)
         Spawned process 12 [python -c ...], running
         <14>May  4 09:11:22 -c: subprocess done
