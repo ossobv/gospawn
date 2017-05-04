@@ -49,28 +49,26 @@ func (p *Process) respawn() error {
 
 	pid, err := syscall.ForkExec(p.Command[0], p.Command, &attr)
 	if err == nil {
-		fmt.Fprintf(os.Stdout, "Spawned process %d: %s\n", pid, p.Command)
 		p.Pid = pid
+		fmt.Fprintf(os.Stdout, "Spawned %s\n", statusOfProcess(p, nil))
 	}
 	return err
 }
 
 // Set status of process based on WaitStatus
 func (p *Process) setStatus(waitStatus *syscall.WaitStatus) {
-	if waitStatus.Exited() {
-		fmt.Fprintf(os.Stdout, "Reaped process %d: %s, status %d\n",
-			p.Pid, p.Command, waitStatus.ExitStatus())
-		if waitStatus.ExitStatus() == 0 {
-			p.Pid = PID_DONE
-		} else {
-			p.Pid = PID_FAILED
-		}
-	} else if waitStatus.Signaled() {
-		fmt.Fprintf(os.Stdout, "Reaped process %d: %s, signal %s\n",
-			p.Pid, p.Command, waitStatus.Signal())
-		p.Pid = PID_FAILED
+	status := statusOfProcess(p, waitStatus)
+	if status.isAlive() {
+		// We don't really expect status statuss for living children.
+		// Did you waitpid with WCONTINUED?
+		fmt.Fprintf(os.Stderr, "ERR: Not reaping %s\n", status)
 	} else {
-		fmt.Fprintf(os.Stderr, "DBG: Not reaping PID %d\n", p.Pid)
+		fmt.Fprintf(os.Stdout, "Reaped %s\n", status)
+		if status.hasFailed() {
+			p.Pid = PID_FAILED
+		} else {
+			p.Pid = PID_DONE
+		}
 	}
 }
 

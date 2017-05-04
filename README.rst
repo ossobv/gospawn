@@ -70,21 +70,16 @@ Other examples:
     .. code-block:: console
 
         $ docker run -it IMG /gospawn /dev/log -- /usr/bin/python -c '\
-        import subprocess,time,syslog;\
-        p=subprocess.Popen("( setsid sleep 5 ) &", shell=True);p.wait();\
-        syslog.syslog("subprocess done");time.sleep(10);\
-        syslog.syslog("sleep done")'
-
+                import subprocess,time,syslog;\
+                p=subprocess.Popen("setsid sleep 5 &", shell=True);p.wait();\
+                syslog.syslog("subprocess done");time.sleep(10);\
+                syslog.syslog("sleep done")'
         Spawned syslogd at UNIX(/dev/log)
-        Spawned process 13: [/usr/bin/python -c import subprocess,time,syslog;\
-          p=subprocess.Popen("( setsid sleep 5 ) &", shell=True);p.wait();\
-          syslog.syslog("subprocess done");time.sleep(10);syslog.syslog("sleep done")]
-        <14>May  2 15:07:12 -c: subprocess done
-        <14>May  2 15:07:22 -c: sleep done
-        Reaped process 13: [/usr/bin/python -c import subprocess,time,syslog;\
-          p=subprocess.Popen("( setsid sleep 5 ) &", shell=True);p.wait();\
-          syslog.syslog("subprocess done");time.sleep(10);syslog.syslog("sleep done")],\
-           status 0
+        Spawned process 12 [/usr/bin/python -c ...], running
+        <14>May  4 09:11:22 -c: subprocess done
+        Reaped process 14, status 0
+        <14>May  4 09:11:32 -c: sleep done
+        Reaped process 12 [/usr/bin/python -c ...], status 0
 
 
 TODO

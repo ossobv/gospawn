@@ -7,9 +7,7 @@ import (
 )
 
 // List holds a list of processes to work on with predefined methods.
-type List struct {
-	processes []Process
-}
+type List []Process
 
 // NewList returns a new empty list of processes to work on.
 func NewList() List {
@@ -23,23 +21,23 @@ func (l *List) StartProcess(command []string) error {
 	if err != nil {
 		return err
 	}
-	l.processes = append(l.processes, proc)
+	*l = append(*l, proc)
 	return nil
 }
 
 // SendSignal sends a signal to all running processes in the list.
 func (l *List) SendSignal(signal syscall.Signal) {
-	for i := 0; i < len(l.processes); i++ {
-		if l.processes[i].Pid >= PID_VALID {
-			syscall.Kill(l.processes[i].Pid, signal)
+	for i := 0; i < len(*l); i++ {
+		if (*l)[i].Pid >= PID_VALID {
+			syscall.Kill((*l)[i].Pid, signal)
 		}
 	}
 }
 
 // IsDone returns whether the processes are all done without failure.
 func (l *List) IsDone() bool {
-	for i := 0; i < len(l.processes); i++ {
-		if l.processes[i].Pid != PID_DONE {
+	for i := 0; i < len(*l); i++ {
+		if (*l)[i].Pid != PID_DONE {
 			return false
 		}
 	}
@@ -48,15 +46,15 @@ func (l *List) IsDone() bool {
 
 // IsEmpty returns whether the process list is empty.
 func (l *List) IsEmpty() bool {
-	return len(l.processes) == 0
+	return len(*l) == 0
 }
 
 // IsRunning returns whether any process is currently running.
 func (l *List) IsRunning() bool {
-	for i := 0; i < len(l.processes); i++ {
-		if l.processes[i].Pid >= PID_VALID {
+	for i := 0; i < len(*l); i++ {
+		if (*l)[i].Pid >= PID_VALID {
 			//fmt.Fprintf(os.Stderr, "DBG: Methinks PID %d is still up...\n",
-			//		l.processes[i].Pid)
+			//		(*l)[i].Pid)
 			return true
 		}
 	}
@@ -66,9 +64,9 @@ func (l *List) IsRunning() bool {
 // RespawnFailed respawns all processes that have a failure exit code.
 func (l *List) RespawnFailed() uint {
 	count := uint(0)
-	for i := 0; i < len(l.processes); i++ {
-		if l.processes[i].Pid == PID_FAILED {
-			err := l.processes[i].respawn()
+	for i := 0; i < len(*l); i++ {
+		if (*l)[i].Pid == PID_FAILED {
+			err := (*l)[i].respawn()
 			if err == nil {
 				count++
 			}
@@ -92,12 +90,12 @@ func (l *List) HandleSigChild() bool {
 		// In the rare case that we missed a signal, we can use the
 		// "there are no processes to wait on" ECHILD to mark all
 		// children down.
-		for i := 0; i < len(l.processes); i++ {
-			if l.processes[i].Pid >= PID_VALID {
+		for i := 0; i < len(*l); i++ {
+			if (*l)[i].Pid >= PID_VALID {
 				fmt.Fprintf(os.Stderr,
 					"ERR: acting on ECHILD, marking PID %d as down\n",
-					l.processes[i].Pid)
-				l.processes[i].Pid = PID_FAILED
+					(*l)[i].Pid)
+				(*l)[i].Pid = PID_FAILED
 			}
 		}
 		return false
@@ -114,12 +112,13 @@ func (l *List) HandleSigChild() bool {
 		// Looping over _, proc := range processes is no good.
 		// It'll return a copy of Process, and we'd edit a temp
 		// copy only.
-		for i := 0; i < len(l.processes); i++ {
-			if l.processes[i].Pid == pid {
-				l.processes[i].setStatus(&waitStatus)
+		for i := 0; i < len(*l); i++ {
+			if (*l)[i].Pid == pid {
+				(*l)[i].setStatus(&waitStatus)
 				return true
 			}
 		}
+		fmt.Fprintf(os.Stdout, "Reaped %s\n", statusOfPid(pid, &waitStatus))
 	}
 
 	// Apparently this was not one of our children.
