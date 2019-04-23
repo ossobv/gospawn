@@ -31,6 +31,16 @@ spawn *cron* and *uwsgi*, you use this::
 
     gospawn 514 /dev/log -- /usr/sbin/cron -f -L 15 -- /usr/bin/uwsgi /uwsgi.ini
 
+Quick download:
+
+.. code-block:: console
+
+    $ test $(curl -so- https://junk.devs.nu/go/gospawn.upx | sha512sum |
+             cut -f1 -d' ') = "\
+    dbc7d42ab139e84e0dd7781e5a0d40018dfdd4b4b776860b328beffa5f035b0d\
+    afdc8dbd830ab2b733e95cb4ea84a4f6c477c707f11231d604292beacf13762d" &&
+      curl -so gospawn https://junk.devs.nu/go/gospawn.upx
+
 When processes succeed (return with code 0), they are not respawned. If
 they fail, they are respawned:
 
