@@ -9,7 +9,7 @@ import (
 // Alarm sets up a timer so a SIGALRM signal is fired after 'seconds'
 // seconds.
 func Alarm(seconds int) {
-	if seconds <= 0 || seconds > 86400 {
+	if seconds < 0 || seconds > 86400 {
 		fmt.Fprintf(os.Stderr,
 			"ERR: Invalid value passed to Alarm()\n")
 		return
