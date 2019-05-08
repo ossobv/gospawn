@@ -98,7 +98,6 @@ TODO
 ----
 
 * Check what we do with stale sockets in syslog2stdout and do the same here.
-* Also fix the socket ownership. (Er. Fix what?)
 * Also parse RFC5424? See:
   ``./gospawn 8514 -- logger -n 127.0.0.1 -P 8514 -p user.info Test``
   and https://github.com/ossobv/syslog2stdout/blob/master/syslog2stdout.c#L224

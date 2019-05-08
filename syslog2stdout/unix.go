@@ -3,6 +3,7 @@ package syslog2stdout
 import (
 	"fmt"
 	"net"
+	"os"
 	"syscall"
 )
 
@@ -16,6 +17,9 @@ func newUnixgram(filename string) (Syslogd, error) {
 	conn, err := net.ListenUnixgram("unixgram", &listenAddr)
 	if err != nil {
 		return nil, err
+	}
+	if err := os.Chmod(filename, 0666); err != nil {
+		fmt.Fprintf(os.Stderr, "WARN: chmod failed on %q\n", filename)
 	}
 	s := &syslogdUnixgram{filename: filename, conn: conn}
 	return s, nil
