@@ -80,27 +80,28 @@ Other examples:
     .. code-block:: console
 
         $ docker run -it IMG /gospawn /dev/log -- python -c '\
-                import subprocess,time,syslog;\
-                p=subprocess.Popen("setsid sleep 5 &", shell=True);p.wait();\
-                syslog.syslog("subprocess done");time.sleep(10);\
-                syslog.syslog("sleep done")'
+        import subprocess,time,syslog;
+        p=subprocess.Popen("setsid sleep 5 &", shell=True);p.wait();
+        syslog.syslog("subprocess done");time.sleep(10);
+        syslog.syslog("sleep done")' | wtimestamp
 
-        Spawned syslogd at UNIX(/dev/log)
-        Spawned process 12 [python -c ...], running
-        <14>May  4 09:11:22 -c: subprocess done
-        Reaped process 14, status 0
-        <14>May  4 09:11:32 -c: sleep done
-        Reaped process 12 [python -c ...], status 0
+        14:15:11: Spawned syslogd at UNIX(/dev/log)
+        14:15:11: Spawned process 12 [python3 -c ...], running
+        14:15:11: user.info: -c: subprocess done
+        14:15:16: Reaped process 15, status 0
+        14:15:21: user.info: -c: sleep done
+        14:15:21: Reaped process 12 [python3 -c ...], status 0
+        14:15:21: DBG: UNIX(/dev/log): read unixgram /dev/log: use of closed netw..
 
 
 TODO
 ----
 
 * Check what we do with stale sockets in syslog2stdout and do the same here.
-* Bugs: the Close() during shutdown may send syslogd Read errors to the console.
-* Also fix the socket ownership.
-* Parse syslogd stuff instead of printing it verbatim:
-  See also: https://github.com/ossobv/syslog2stdout/blob/master/syslog2stdout.c#L61
+* Also fix the socket ownership. (Er. Fix what?)
+* Also parse RFC5424? See:
+  ``./gospawn 8514 -- logger -n 127.0.0.1 -P 8514 -p user.info Test``
+  and https://github.com/ossobv/syslog2stdout/blob/master/syslog2stdout.c#L224
 * Future: add cron-daemon?
 * Should we have called this "minitgo" or "initgo" (mini, init in go?).
 * See also: http://git.suckless.org/sinit/tree/sinit.c

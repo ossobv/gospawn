@@ -65,7 +65,7 @@ func handleAll(syslogd Syslogd, conn net.PacketConn) {
 		}
 
 		// FIXME: the buf has to be parsed syslog-style
-		str := string(buf[:n])
-		fmt.Fprintf(os.Stdout, "%s%s\n", syslogd.Addr2Prefix(&addr), str)
+		fmt.Fprintf(os.Stdout, "%s%s\n", syslogd.Addr2Prefix(&addr),
+			parseLog(buf[:n]))
 	}
 }
