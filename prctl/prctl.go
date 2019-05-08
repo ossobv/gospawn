@@ -15,7 +15,16 @@ const prSetChildSubreaper = 36 // PR_SET_CHILD_SUBREAPER
 func SetChildSubreaper() error {
 	_, _, ret := syscall.RawSyscall(sysPrctl, prSetChildSubreaper, 1, 0)
 	if ret != 0 {
-		return fmt.Errorf("PR_SET_CHILD_SUBREAPER failed with errno %d", ret)
+		return fmt.Errorf("PR_SET_CHILD_SUBREAPER failed, errno %d", ret)
+	}
+	return nil
+}
+
+// unsetChildSubreaper explicitly unsets PR_SET_CHILD_SUBREAPER.
+func unsetChildSubreaper() error {
+	_, _, ret := syscall.RawSyscall(sysPrctl, prSetChildSubreaper, 0, 0)
+	if ret != 0 {
+		return fmt.Errorf("un-PR_SET_CHILD_SUBREAPER failed, errno %d", ret)
 	}
 	return nil
 }
