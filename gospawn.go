@@ -13,14 +13,14 @@ import (
 )
 
 const (
-	// QUIT_IMMEDIATELY toggles whether CTRL+\\ (SIGQUIT) aborts the
+	// quitImmediately toggles whether CTRL+\\ (SIGQUIT) aborts the
 	// application instead of passing the signal on as usual.  Useful
 	// during development.  Otherwise only SIGINT and SIGTERM schedule
 	// application termination.
-	QUIT_IMMEDIATELY = true
-	// SLEEP_BEFORE_RESPAWN defines after how many seconds the "respawn all
+	quitImmediately = true
+	// sleepBeforeRespawn defines after how many seconds the "respawn all
 	// processes" alarm should be fired.
-	SLEEP_BEFORE_RESPAWN = 10
+	sleepBeforeRespawn = 10
 )
 
 type mainState struct {
@@ -115,12 +115,12 @@ func (m *mainState) handleSigChild() {
 		// If we did something to the process list, we may have
 		// lost a child. Spawn an alarm to restart any dead
 		// children soon.
-		signal.Alarm(SLEEP_BEFORE_RESPAWN)
+		signal.Alarm(sleepBeforeRespawn)
 	}
 }
 
 func (m *mainState) handleQuit() {
-	if QUIT_IMMEDIATELY {
+	if quitImmediately {
 		fmt.Fprintf(os.Stderr,
 			"ERR: Got SIGQUIT, passing kill -9 to all\n")
 		// Quick exit, no cleanup!

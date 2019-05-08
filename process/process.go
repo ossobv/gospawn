@@ -8,15 +8,15 @@ import (
 )
 
 const (
-	// PID_DONE states that the process ended and we don't want to start
+	// pidDone states that the process ended and we don't want to start
 	// anew.  This value doesn't conflict with valid PIDs.
-	PID_DONE = 0
-	// PID_FAILED states that the process ended with a failure state and
+	pidDone = 0
+	// pidFailed states that the process ended with a failure state and
 	// we *do* want to start anew.  This value doesn't conflict with
 	// valid PIDs.
-	PID_FAILED = -1
-	// PID_VALID is the lowest valid PID, which is 1.
-	PID_VALID = 1
+	pidFailed = -1
+	// pidValid is the lowest valid PID, which is 1.
+	pidValid = 1
 )
 
 // Process keeps track of a single subprocess.
@@ -29,14 +29,14 @@ type Process struct {
 func New(command []string) (Process, error) {
 	// Note that we require a non-clean environment. We want the ENV
 	// from the caller to end up here.
-	process := Process{Command: command, Pid: PID_DONE}
+	process := Process{Command: command, Pid: pidDone}
 	err := process.respawn()
 	return process, err
 }
 
 // Spawn/respawn process.
 func (p *Process) respawn() error {
-	if p.Pid >= PID_VALID {
+	if p.Pid >= pidValid {
 		return &alreadyRunningError{}
 	}
 
@@ -66,9 +66,9 @@ func (p *Process) setStatus(waitStatus *syscall.WaitStatus) {
 	} else {
 		fmt.Fprintf(os.Stdout, "Reaped %s\n", status)
 		if status.hasFailed() {
-			p.Pid = PID_FAILED
+			p.Pid = pidFailed
 		} else {
-			p.Pid = PID_DONE
+			p.Pid = pidDone
 		}
 	}
 }

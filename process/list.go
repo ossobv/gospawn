@@ -28,7 +28,7 @@ func (l *List) StartProcess(command []string) error {
 // SendSignal sends a signal to all running processes in the list.
 func (l *List) SendSignal(signal syscall.Signal) {
 	for i := 0; i < len(*l); i++ {
-		if (*l)[i].Pid >= PID_VALID {
+		if (*l)[i].Pid >= pidValid {
 			syscall.Kill((*l)[i].Pid, signal)
 		}
 	}
@@ -37,7 +37,7 @@ func (l *List) SendSignal(signal syscall.Signal) {
 // IsDone returns whether the processes are all done without failure.
 func (l *List) IsDone() bool {
 	for i := 0; i < len(*l); i++ {
-		if (*l)[i].Pid != PID_DONE {
+		if (*l)[i].Pid != pidDone {
 			return false
 		}
 	}
@@ -52,7 +52,7 @@ func (l *List) IsEmpty() bool {
 // IsRunning returns whether any process is currently running.
 func (l *List) IsRunning() bool {
 	for i := 0; i < len(*l); i++ {
-		if (*l)[i].Pid >= PID_VALID {
+		if (*l)[i].Pid >= pidValid {
 			//fmt.Fprintf(os.Stderr, "DBG: Methinks PID %d is still up...\n",
 			//		(*l)[i].Pid)
 			return true
@@ -65,7 +65,7 @@ func (l *List) IsRunning() bool {
 func (l *List) RespawnFailed() uint {
 	count := uint(0)
 	for i := 0; i < len(*l); i++ {
-		if (*l)[i].Pid == PID_FAILED {
+		if (*l)[i].Pid == pidFailed {
 			err := (*l)[i].respawn()
 			if err == nil {
 				count++
@@ -84,6 +84,7 @@ func (l *List) HandleSigChild() bool {
 	switch {
 	case pid == 0:
 		// Nothing to do?
+		//fmt.Fprintf(os.Stderr, "DBG: Got ECHILD, but no children\n")
 		return false
 
 	case err == syscall.ECHILD:
@@ -91,11 +92,11 @@ func (l *List) HandleSigChild() bool {
 		// "there are no processes to wait on" ECHILD to mark all
 		// children down.
 		for i := 0; i < len(*l); i++ {
-			if (*l)[i].Pid >= PID_VALID {
+			if (*l)[i].Pid >= pidValid {
 				fmt.Fprintf(os.Stderr,
 					"ERR: acting on ECHILD, marking PID %d as down\n",
 					(*l)[i].Pid)
-				(*l)[i].Pid = PID_FAILED
+				(*l)[i].Pid = pidFailed
 			}
 		}
 		return false
