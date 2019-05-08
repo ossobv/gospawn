@@ -91,6 +91,7 @@ func (l *List) HandleSigChild() bool {
 		// In the rare case that we missed a signal, we can use the
 		// "there are no processes to wait on" ECHILD to mark all
 		// children down.
+		// XXX: can we? I don't think we'll ever reach this...
 		for i := 0; i < len(*l); i++ {
 			if (*l)[i].Pid >= pidValid {
 				fmt.Fprintf(os.Stderr,
@@ -120,8 +121,9 @@ func (l *List) HandleSigChild() bool {
 			}
 		}
 		fmt.Fprintf(os.Stdout, "Reaped %s\n", statusOfPid(pid, &waitStatus))
+		return true
 	}
 
-	// Apparently this was not one of our children.
+	// Nothing more to do.
 	return false
 }

@@ -106,6 +106,10 @@ func (m *mainState) handleSigChild() {
 	didSomething := false
 	for m.processlist.HandleSigChild() {
 		didSomething = true
+		// Maybe we only get one SIGCHLD for multiple children. Reap as
+		// much as possible.
+		for m.processlist.HandleSigChild() == true {
+		}
 	}
 	if !m.processlist.IsEmpty() && m.processlist.IsDone() {
 		// If we're running processes, but they're all done
@@ -138,8 +142,8 @@ func (m *mainState) handleSigDefault(sig os.Signal) {
 	}
 
 	if syscallSig, ok := sig.(syscall.Signal); ok {
-		//fmt.Fprintf(os.Stderr, "DBG: forwarding signal %s\n",
-		//		syscallSig)
+		fmt.Fprintf(os.Stderr, "DBG: Forwarding signal %s\n",
+			syscallSig)
 		m.processlist.SendSignal(syscallSig)
 	}
 
@@ -152,30 +156,35 @@ func (m *mainState) handleSigDefault(sig os.Signal) {
 func (m *mainState) doWork() {
 	// Read all signals until it's time to end.
 	for sig := range m.sigHandler.Chan {
-		//fmt.Fprintf(os.Stderr, "DBG: signal: %s\n", sig.String()
-
-		switch sig.String() {
-		case "alarm clock":
-			m.handleAlarm()
-
-		case "child exited":
-			m.handleSigChild()
-
-		case "quit":
-			// handleQuit() may Exit, or not, in which case we handle it
-			// like every other signal.
-			m.handleQuit()
-			fallthrough
-
-		default:
-			m.handleSigDefault(sig)
-		}
+		//fmt.Fprintf(os.Stderr, "DBG: Signal %s\n", sig.String())
+		m.doHandler(sig, true)
 
 		// If we're "stopping" and there are no more running processes,
 		// we're done.
 		if m.stopping && !m.processlist.IsRunning() {
 			break
 		}
+	}
+}
+
+func (m *mainState) doHandler(sig os.Signal, handleChildren bool) {
+	switch sig.String() {
+	case "alarm clock":
+		m.handleAlarm()
+
+	case "child exited":
+		if handleChildren == true {
+			m.handleSigChild()
+		}
+
+	case "quit":
+		// handleQuit() may Exit, or not, in which case we handle it
+		// like every other signal.
+		m.handleQuit()
+		fallthrough
+
+	default:
+		m.handleSigDefault(sig)
 	}
 }
 
