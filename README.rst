@@ -35,11 +35,13 @@ Quick download:
 
 .. code-block:: console
 
-    $ test $(curl -so- https://junk.devs.nu/go/gospawn.upx | sha512sum |
-             cut -f1 -d' ') = "\
-    dbc7d42ab139e84e0dd7781e5a0d40018dfdd4b4b776860b328beffa5f035b0d\
-    afdc8dbd830ab2b733e95cb4ea84a4f6c477c707f11231d604292beacf13762d" &&
-      curl -so gospawn https://junk.devs.nu/go/gospawn.upx
+    $ if ! curl -so gospawn https://junk.devs.nu/go/gospawn.upx ||
+         ! printf '%s%s  gospawn\n' \
+           939760978b2e56dd2c60d7c85d27770612aa862007f9f6b81d756a23761ed09f \
+           c074f1f1badf3b00fd68b66a8ab7f0498a5424db68a59d86264a90ef34815b48 |
+           sha512sum -c; then
+        rm -f gospawn; false
+      fi
 
 When processes succeed (return with code 0), they are not respawned. If
 they fail, they are respawned:
