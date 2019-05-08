@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 	"syscall"
+	"time"
 )
 
 const (
@@ -69,6 +70,33 @@ func (p *Process) setStatus(waitStatus *syscall.WaitStatus) {
 			p.Pid = pidFailed
 		} else {
 			p.Pid = pidDone
+		}
+	}
+}
+
+// WaitForAllProcesses waits for all known and unknown child processes
+// of this process.  Because we have PR_SET_CHILD_SUBREAPER, we may get
+// more children than we expect.  Allow us to wait for them when
+// shutting down.
+func WaitForAllProcesses() {
+	var waitStatus syscall.WaitStatus
+	for {
+		// Infinitely block and wait for all children. We cannot do
+		// non-blocking WNOHANG, because then we won't get ECHILD once
+		// all processes are stopped/reaped.  (And I have no idea how to
+		// get a listing of child processes without resorting to
+		// proc(5).)
+		pid, err := syscall.Wait4(-1, &waitStatus, 0, nil)
+		if err == nil {
+			status := statusOfPid(pid, &waitStatus)
+			fmt.Fprintf(os.Stdout, "Reaped %s\n", status)
+		} else if err == syscall.ECHILD {
+			//fmt.Fprintf(os.Stderr, "DBG: No more children\n")
+			break
+		} else {
+			fmt.Fprintf(os.Stderr, "ERR: WaitForAllProcesses: %s\n",
+				err.Error())
+			time.Sleep(1 * time.Second)
 		}
 	}
 }

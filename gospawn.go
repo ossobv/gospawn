@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"syscall"
+	"time"
 
 	"github.com/ossobv/gospawn/args"
 	"github.com/ossobv/gospawn/prctl"
@@ -22,6 +23,10 @@ const (
 	// sleepBeforeRespawn defines after how many seconds the "respawn all
 	// processes" alarm should be fired.
 	sleepBeforeRespawn = 10
+	// sleepGracefulStop defines after how many seconds we should
+	// stop waiting for children to die on their own. Should probably be
+	// less than the default time for dockerd to start sigkilling.
+	sleepGracefulStop = 20
 )
 
 type mainState struct {
@@ -143,7 +148,7 @@ func (m *mainState) handleQuit() {
 			"ERR: Got SIGQUIT, passing kill -9 to all\n")
 		// Quick exit, no cleanup!
 		m.processlist.SendSignal(syscall.SIGKILL)
-		// Try a bit of cleanup.
+		// Don't wait for any processes. But still try a bit of cleanup.
 		m.shutdown()
 		os.Exit(128 + 3 /* SIGQUIT */)
 	}
@@ -202,6 +207,32 @@ func (m *mainState) doHandler(sig os.Signal, handleChildren bool) {
 	}
 }
 
+func (m *mainState) waitForProcesses(seconds int) {
+	// Run WaitForAllProcesses in the background.
+	ch := make(chan bool, 1)
+	go func() {
+		process.WaitForAllProcesses()
+		ch <- true
+	}()
+
+	// Simultaneously wait for timeout and other signals.
+	for {
+		select {
+		case <-ch:
+			// No more children. Yay!
+			return
+		case sig := <-m.sigHandler.Chan:
+			// Forward to our signal handlers as before. But don't do
+			// any child reaping anymore.
+			m.doHandler(sig, false)
+		case <-time.After(time.Duration(seconds) * time.Second):
+			// We're done waiting.
+			fmt.Fprintf(os.Stderr, "ERR: Stop waiting after %ds\n", seconds)
+			return
+		}
+	}
+}
+
 func main() {
 	args := args.Parse(os.Args[1:])
 
@@ -213,5 +244,6 @@ func main() {
 	if gospawn.hasWork() {
 		gospawn.doWork()
 	}
+	gospawn.waitForProcesses(sleepGracefulStop)
 	gospawn.shutdown()
 }
