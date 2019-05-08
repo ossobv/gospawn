@@ -7,6 +7,7 @@ import (
 	"syscall"
 
 	"github.com/ossobv/gospawn/args"
+	"github.com/ossobv/gospawn/prctl"
 	"github.com/ossobv/gospawn/process"
 	"github.com/ossobv/gospawn/signal"
 	"github.com/ossobv/gospawn/syslog2stdout"
@@ -36,6 +37,19 @@ type mainState struct {
 
 func goSpawn() mainState {
 	return mainState{stopping: false}
+}
+
+// Make us the parent of all children, even daemonized ones.  This fixes
+// so we can keep os.Wait()ing for double-forked daemons.
+//
+// NOTE: This is NOT needed when gospawn is run as Docker PID 1. Docker
+// already sets that for us.  But when we want to test stuff without
+// Docker this is a blessing.
+func (m *mainState) initSubreaper() {
+	err := prctl.SetChildSubreaper()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "WARN: %s\n", err.Error())
+	}
 }
 
 func (m *mainState) initSignals() {
@@ -192,6 +206,7 @@ func main() {
 	args := args.Parse(os.Args[1:])
 
 	gospawn := goSpawn()
+	gospawn.initSubreaper()
 	gospawn.initSignals()
 	gospawn.startSyslogds(args.SyslogPorts)
 	gospawn.startProcesses(args.Commands)
