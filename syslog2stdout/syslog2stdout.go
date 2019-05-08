@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"strconv"
+	"strings"
 )
 
 // Syslogd handles incoming syslog packets, sending them on to stdout.
@@ -34,6 +35,18 @@ func New(portOrFilename string) (Syslogd, error) {
 	return newUnixgram(portOrFilename)
 }
 
+// https://github.com/golang/go/issues/4373 -- do a string comparison to
+// find out that the network connection is closed.
+func isClosedErr(err error) bool {
+	if err == nil {
+		return false
+	}
+	if strings.Contains(err.Error(), "use of closed network connection") {
+		return true
+	}
+	return false
+}
+
 func handleAll(syslogd Syslogd, conn net.PacketConn) {
 	fmt.Fprintf(os.Stdout, "Spawned syslogd at %s\n",
 		syslogd.Description())
@@ -41,7 +54,11 @@ func handleAll(syslogd Syslogd, conn net.PacketConn) {
 	buf := make([]byte, 8192)
 	for {
 		n, addr, err := conn.ReadFrom(buf)
-		if err != nil {
+		if isClosedErr(err) {
+			fmt.Fprintf(os.Stderr, "DBG: %s: %s\n", syslogd.Description(),
+				err.Error())
+			break
+		} else if err != nil {
 			fmt.Fprintf(os.Stderr, "ERR: %s: %s\n", syslogd.Description(),
 				err.Error())
 			continue
