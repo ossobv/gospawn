@@ -14,6 +14,8 @@ import (
 	"github.com/ossobv/gospawn/syslog2stdout"
 )
 
+var version string
+
 const (
 	// quitImmediately toggles whether CTRL+\\ (SIGQUIT) aborts the
 	// application instead of passing the signal on as usual.  Useful
@@ -236,11 +238,14 @@ func (m *mainState) waitForProcesses(seconds int) {
 func main() {
 	args := args.Parse(os.Args[1:])
 
+	fmt.Fprintf(os.Stdout, "GoSpawn %s starting...\n", version)
 	gospawn := goSpawn()
 	gospawn.initSubreaper()
 	gospawn.initSignals()
+
 	gospawn.startSyslogds(args.SyslogPorts)
 	gospawn.startProcesses(args.Commands)
+
 	if gospawn.hasWork() {
 		gospawn.doWork()
 	}

@@ -13,7 +13,13 @@ test: $(shell find ! -path './.*' -type f -name '*_test.go')
 gospawn: Makefile $(shell find ! -path './.*' -name '*.go' -type f)
 	-find ! -path './.*' -type d | xargs -n 1 golint
 	@echo
-	go build $(GOFLAGS) gospawn.go
+	go build $(GOFLAGS) \
+	  -ldflags "-X main.version=$(shell git describe --always --dirty)" \
+	  gospawn.go
 	@if objdump -p gospawn | grep NEEDED; then \
 	   echo '*** not a static binary ***' >&2; rm gospawn; false; \
-	 fi
+	fi
+
+gospawn.upx: gospawn
+	if cp -a gospawn gospawn.upx && upx -qq gospawn.upx; then \
+	  touch gospawn.upx; else rm gospawn.upx; fi

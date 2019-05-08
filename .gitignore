@@ -4,6 +4,7 @@
 *.so
 
 /gospawn
+/gospawn.upx
 
 # Cache/temp files
 .*.swp

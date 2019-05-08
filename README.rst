@@ -47,6 +47,7 @@ they fail, they are respawned:
 .. code-block:: console
 
     $ gospawn -- sleep 1 -- false
+    GoSpawn 46ce713 starting...
     Spawned process 29087 [sleep 1], running
     Spawned process 29089 [false], running
     Reaped process 29089 [false], status 1
@@ -85,6 +86,7 @@ Other examples:
         syslog.syslog("subprocess done");time.sleep(10);
         syslog.syslog("sleep done")' | wtimestamp
 
+        14:15:11: GoSpawn 46ce713 starting...
         14:15:11: Spawned syslogd at UNIX(/dev/log)
         14:15:11: Spawned process 12 [python3 -c ...], running
         14:15:11: user.info: -c: subprocess done
